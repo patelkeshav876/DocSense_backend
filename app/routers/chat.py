@@ -21,7 +21,10 @@ async def ask_question(
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
     
-    response = await chat_service.ask_question(doc_id, request.question, current_user.id, db)
+    try:
+        response = await chat_service.ask_question(doc_id, request.question, current_user.id, db)
+    except ValueError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
     return {"response": response}
 
 @router.get("/{doc_id}/history", response_model=List[schemas.ChatMessage])
