@@ -72,28 +72,24 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
 @router.post("/register", response_model=schemas.User)
 def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
     try:
-        logger.info(f"Registering user: {user.email}")
-        logger.info(f"Password received: '{user.password}' (length: {len(user.password)}, bytes: {len(user.password.encode())})")
-        
-        # Validate password length (bcrypt limit is 72 bytes)
-        if len(user.password.encode()) > 72:
-            logger.warning(f"Password too long for {user.email}")
-            raise HTTPException(status_code=400, detail="Password must be 72 bytes or less")
-        
-        db_user = db.query(models.User).filter(models.User.email == user.email).first()
+        email = user.email.strip().lower()
+        logger.info(f"Registering user: {email}")
+
+        if not user.password.strip():
+            raise HTTPException(status_code=400, detail="Password cannot be empty")
+
+        db_user = db.query(models.User).filter(models.User.email == email).first()
         if db_user:
-            logger.warning(f"Email already exists: {user.email}")
-            raise HTTPException(status_code=400, detail="Email already registered")
-        
-        logger.info(f"About to hash password...")
+            logger.warning(f"Email already exists: {email}")
+            raise HTTPException(status_code=409, detail="Email already registered")
+
         hashed_password = get_password_hash(user.password)
-        logger.info(f"Password hashed successfully")
-        
-        db_user = models.User(email=user.email, hashed_password=hashed_password)
+
+        db_user = models.User(email=email, hashed_password=hashed_password)
         db.add(db_user)
         db.commit()
         db.refresh(db_user)
-        logger.info(f"User registered successfully: {user.email}")
+        logger.info(f"User registered successfully: {email}")
         return db_user
     except HTTPException:
         raise
