@@ -1,7 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
-from app.routers import auth, documents, chat
+from app.routers.auth import router as auth_router
+from app.routers.documents import router as documents_router
+from app.routers.chat import router as chat_router
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -26,9 +28,9 @@ app.add_middleware(
 )
 
 # Include routers
-app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
-app.include_router(documents.router, prefix="/documents", tags=["Documents"])
-app.include_router(chat.router, prefix="/chat", tags=["Chat"])
+app.include_router(auth_router, prefix="/auth", tags=["Authentication"])
+app.include_router(documents_router, prefix="/documents", tags=["Documents"])
+app.include_router(chat_router, prefix="/chat", tags=["Chat"])
 
 @app.get("/")
 def read_root():
