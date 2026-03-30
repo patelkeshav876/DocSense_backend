@@ -9,12 +9,18 @@ from app import models
 class ChatService:
     def __init__(self):
         self.model_name = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
-        self.api_key = os.getenv("GROQ_API_KEY")
-        self.client = Groq(api_key=self.api_key) if self.api_key else None
+        self.client = None
+
+    def _get_client(self) -> Groq:
+        if self.client is None:
+            api_key = os.getenv("GROQ_API_KEY")
+            if not api_key:
+                raise ValueError("GROQ_API_KEY is not configured")
+            self.client = Groq(api_key=api_key)
+        return self.client
 
     async def ask_question(self, doc_id: str, question: str, user_id: str, db: Session) -> str:
-        if not self.client:
-            raise ValueError("GROQ_API_KEY is not configured")
+        client = self._get_client()
 
         # Get relevant chunks using RAG
         relevant_chunks = self.retrieve_relevant_chunks(doc_id, question, db, top_k=3)
@@ -35,7 +41,7 @@ Question:
 {question}
 """
 
-        response = self.client.chat.completions.create(
+        response = client.chat.completions.create(
             model=self.model_name,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.2,
